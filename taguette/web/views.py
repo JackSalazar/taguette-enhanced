@@ -445,6 +445,25 @@ class ProjectAdd(BaseHandler):
             validate.project_name(name)
             validate.description(description)
 
+            # Check for duplicate project name for this user
+            duplicate = (
+                self.db.query(database.Project)
+                .join(database.ProjectMember)
+                .filter(
+                    database.ProjectMember.user_login == self.current_user,
+                    database.Project.name == name
+                )
+                .first()
+            )
+
+            if duplicate:
+                return self.render(
+                    'project_new.html',
+                    name=name,
+                    description=description,
+                    error=self.gettext("A project with this name already exists")
+                )
+
             # Create project
             project = database.Project(name=name, description=description)
             self.db.add(project)
