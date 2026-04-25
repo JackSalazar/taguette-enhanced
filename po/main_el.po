@@ -631,8 +631,8 @@ msgstr "Έγγραφα"
 #. Left pane tab, keep short
 #: taguette/templates/project.html:22
 msgctxt "tab"
-msgid "Highlights"
-msgstr "Επισημάνσεις"
+msgid "Tags"
+msgstr "ετικέτες"
 
 #: taguette/templates/project.html:32
 msgctxt "project metadata form label"

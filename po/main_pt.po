@@ -613,7 +613,7 @@ msgstr "Documentos"
 #: taguette/templates/project.html:22
 msgctxt "tab"
 msgid "Highlights"
-msgstr "Destaques"
+msgstr "Etiquetas"
 
 #: taguette/templates/project.html:32
 msgctxt "project metadata form label"

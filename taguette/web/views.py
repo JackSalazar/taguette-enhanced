@@ -436,6 +436,7 @@ class ProjectAdd(BaseHandler):
     def get(self):
         return self.render('project_new.html')
 
+
     @authenticated
     @PROM_REQUESTS.sync('new_project')
     def post(self):

@@ -614,8 +614,8 @@ msgstr "Dokument"
 #. Left pane tab, keep short
 #: taguette/templates/project.html:22
 msgctxt "tab"
-msgid "Highlights"
-msgstr "Markeringar"
+msgid "Tags"
+msgstr "Etiketter"
 
 #: taguette/templates/project.html:32
 msgctxt "project metadata form label"
