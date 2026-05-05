@@ -434,7 +434,7 @@ function splitAtPos(pos, after) {
 }
 
 // Highlight a described selection
-function highlightSelection(saved, id, clickedCallback, title) {
+function highlightSelection(saved, id, clickedCallback, title, color) { // Added the 'color' field (Pako, 4/28/2026)
   console.log("Highlighting", saved);
   if(saved === null) {
     return;
@@ -454,6 +454,7 @@ function highlightSelection(saved, id, clickedCallback, title) {
       span.className = 'highlight highlight-' + id;
       span.setAttribute('data-highlight-id', '' + id);
       span.setAttribute('title', title);
+      span.style.backgroundColor = color || '#ffff00'; // Added this as well (Pako, 4/28/2026)
       span.addEventListener('click', clickedCallback);
       node.parentNode.insertBefore(span, node);
       span.appendChild(node);
@@ -1204,7 +1205,7 @@ function setHighlight(highlight) {
   sortByKey(tag_names, function(path) { return path; });
   tag_names = tag_names.join(", ");
   try {
-    highlightSelection([highlight.start_offset, highlight.end_offset], id, editHighlight, tag_names);
+    highlightSelection([highlight.start_offset, highlight.end_offset], id, editHighlight, tag_names, highlight.color || '#ffff00'); // Added the 'highlight.color' field (Pako, 4/28/2026)
     console.log("Highlight set:", highlight);
   } catch(error) {
     console.error(
@@ -1331,6 +1332,7 @@ document.getElementById('highlight-add-form').addEventListener('submit', functio
       hl_tags.push(id);
     }
   }
+  var hl_color = document.getElementById('highlight-add-color').value || '#ffff00'; // Added line (Pako, 4/30/2026)
   var req;
   if(highlight_id) {
     console.log("Posting update for highlight " + highlight_id);
@@ -1338,7 +1340,8 @@ document.getElementById('highlight-add-form').addEventListener('submit', functio
       '/api/project/' + project_id + '/document/' + current_document + '/highlight/' + highlight_id,
       {start_offset: selection[0],
        end_offset: selection[1],
-       tags: hl_tags}
+       tags: hl_tags,
+       color: hl_color} // added the 'color: hl_color' field (Pako, 4/28/2026)
     );
   } else {
     console.log("Posting new highlight");
@@ -1346,7 +1349,8 @@ document.getElementById('highlight-add-form').addEventListener('submit', functio
       '/api/project/' + project_id + '/document/' + current_document + '/highlight/new',
       {start_offset: selection[0],
        end_offset: selection[1],
-       tags: hl_tags}
+       tags: hl_tags,
+       color: hl_color} // added the 'color: hl_color' field (Pako, 4/28/2026)
     );
   }
   showSpinner();
@@ -1911,12 +1915,14 @@ function longPollForEvents() {
       } else if(event.type === 'document_delete') {
         removeDocument(event.document_id);
       } else if(event.type === 'highlight_add') {
+        console.log("highlight_add event received:", event);  // Needed for debugging (Pako, 5/3/2026)
         if(event.document_id === current_document) {
           setHighlight({
             id: event.highlight_id,
             start_offset: event.start_offset,
             end_offset: event.end_offset,
-            tags: event.tags
+            tags: event.tags,
+            color: event.color // Added this field (Pako, 4/30/2026)
           });
         }
       } else if(event.type === 'highlight_delete') {

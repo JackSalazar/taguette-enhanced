@@ -195,6 +195,7 @@ class Document(BaseHandler):
                 {'id': hl.id,
                  'start_offset': hl.start_offset,
                  'end_offset': hl.end_offset,
+                 'color': hl.color, # Added the color field (Pako, 5/3/2026)
                  'tags': [t.id for t in hl.tags]}
                 for hl in highlights
             ],
@@ -479,11 +480,14 @@ class HighlightAdd(BaseHandler):
         snippet = extract.extract(document.contents, start, end)
         if all(c in '\r\n\t' for c in snippet):
             return self.send_error_json(400, self.gettext("Empty highlight"))
+        
+        color = obj.get('color', '#ffff00')  # Read color from request (Pako, 4/25/2026)
 
         hl = database.Highlight(document=document,
                                 start_offset=start,
                                 end_offset=end,
-                                snippet=snippet)
+                                snippet=snippet,
+                                color=color) # Added color (Pako, 5/3/2026)
         self.db.add(hl)
         self.db.flush()  # Need to flush to get hl.id
 
@@ -526,6 +530,8 @@ class HighlightUpdate(BaseHandler):
         if hl is None or hl.document_id != document.id:
             return self.send_error_json(404, self.gettext("No such highlight"))
         if obj:
+            if 'color' in obj:
+                hl.color = obj['color'] # New Addition (Pako, 4/25/2026)
             if 'start_offset' in obj:
                 hl.start_offset = obj['start_offset']
             if 'end_offset' in obj:
@@ -690,6 +696,7 @@ class Highlights(BaseHandler):
                     'document_id': hl.document_id,
                     'content': hl.snippet,
                     'tags': [t.id for t in hl.tags],
+                    'color': hl.color, # New Addition (Pako 4/25/2026)
                     'text_direction': direction.name,
                 }
                 for hl, direction in highlights

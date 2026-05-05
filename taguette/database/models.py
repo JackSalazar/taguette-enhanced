@@ -303,6 +303,9 @@ class Document(Base):
     __tablename__ = 'documents'
     __table_args__ = ({'sqlite_autoincrement': True},)
 
+    # check contents
+    # content_hash = Column(String(64), nullable=True, index=True)  # SHA-256 hex = 64 chars # To check the contents of a document (Pako, 4/28/2026)
+
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
@@ -439,7 +442,7 @@ class Command(Base):
     @command_fields(
         columns=['project_id', 'document_id'],
         payload_fields=[
-            'highlight_id', 'start_offset', 'end_offset', 'tags',
+            'highlight_id', 'start_offset', 'end_offset', 'color', 'tags', # Added the 'color' field (Pako, 5/3/2026)
         ],
     )
     def highlight_add(cls, user_login, document, highlight, tags):
@@ -452,6 +455,7 @@ class Command(Base):
                      'highlight_id': highlight.id,
                      'start_offset': highlight.start_offset,
                      'end_offset': highlight.end_offset,
+                     'color': highlight.color, # New addition (Pako, 4/25/2026)
                      'tags': tags},
         )
 
@@ -601,6 +605,9 @@ class Highlight(Base):
     start_offset = Column(Integer, nullable=False)
     end_offset = Column(Integer, nullable=False)
     snippet = Column(Text, nullable=False)
+
+    color = Column(Text, nullable=False, server_default='#ffff00') # New Addition (Pako, 4/25/2026)
+
     tags = relationship('Tag', secondary='highlight_tags',
                         back_populates='highlights')
 
