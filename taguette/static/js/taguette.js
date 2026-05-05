@@ -1673,6 +1673,23 @@ function loadTag(tag_path, page) {
     }
     // No need to clear the 'tag-current', we are calling updateTagsList() below
     document_contents.innerHTML = '';
+    // Show tag name + description at top
+var tag_obj = Object.values(tags).find(function(t) {
+  return t.path === tag_path;
+});
+
+if(tag_obj) {
+  var header = document.createElement('div');
+  header.style.marginBottom = '15px';
+
+  header.innerHTML =
+    '<h3>' + escapeHtml(tag_obj.path) + '</h3>' +
+    '<p style="color:#777; font-size:14px;">' +
+    escapeHtml(tag_obj.description || "No description") +
+    '</p>';
+
+  document_contents.appendChild(header);
+}
     highlights = {};
     for(var i = 0; i < result.highlights.length; ++i) {
       var hl = result.highlights[i];
