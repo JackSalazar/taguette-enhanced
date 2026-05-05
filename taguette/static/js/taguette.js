@@ -1030,6 +1030,28 @@ function createTag() {
   $(tag_add_modal).modal();
 }
 
+
+
+var tag_directory_add_modal = document.getElementById('tag_directory-add-modal');
+
+$(tag_directory_add_modal).on('shown.bs.modal', function() {
+  document.getElementById('tag_directory-add-path').focus();
+});
+
+
+function createDirectory(){
+  document.getElementById('tag_directory-add-form').reset();
+  document.getElementById('tag_directory-add-id').value = '';
+  document.getElementById('tag_directory-add-label-new').style.display = '';
+  document.getElementById('tag_directory-add-label-change').style.display = 'none';
+  document.getElementById('tag_directory-add-cancel').style.display = '';
+  document.getElementById('tag_directory-add-delete').style.display = 'none';
+  document.getElementById('tag_directory-add-merge').style.display = 'none';
+  $(tag_directory_add_modal).modal();
+
+}
+
+
 function editTag(tag_id) {
   document.getElementById('tag-add-form').reset();
   document.getElementById('tag-add-id').value = '' + tag_id;
