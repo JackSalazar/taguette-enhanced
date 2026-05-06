@@ -1204,6 +1204,8 @@ document.getElementById('tag-merge-form').addEventListener('submit', function(e)
  * Tag Directorys
  */
 
+
+/*
 var tags_directory_sorter = document.getElementById('tag_directory-sortby');
 var sortTags_directory = ['path', 'asc'];
 var tags_directory_list = document.getElementById('tags_directory-list');
@@ -1637,7 +1639,7 @@ document.getElementById('tag-merge-form').addEventListener('submit', function(e)
   })
   .then(hideSpinner);
 });
-
+*/
 
 
 
