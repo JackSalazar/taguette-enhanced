@@ -1030,28 +1030,6 @@ function createTag() {
   $(tag_add_modal).modal();
 }
 
-
-
-var tag_directory_add_modal = document.getElementById('tag_directory-add-modal');
-
-$(tag_directory_add_modal).on('shown.bs.modal', function() {
-  document.getElementById('tag_directory-add-path').focus();
-});
-
-
-function createDirectory(){
-  document.getElementById('tag_directory-add-form').reset();
-  document.getElementById('tag_directory-add-id').value = '';
-  document.getElementById('tag_directory-add-label-new').style.display = '';
-  document.getElementById('tag_directory-add-label-change').style.display = 'none';
-  document.getElementById('tag_directory-add-cancel').style.display = '';
-  document.getElementById('tag_directory-add-delete').style.display = 'none';
-  document.getElementById('tag_directory-add-merge').style.display = 'none';
-  $(tag_directory_add_modal).modal();
-
-}
-
-
 function editTag(tag_id) {
   document.getElementById('tag-add-form').reset();
   document.getElementById('tag-add-id').value = '' + tag_id;
@@ -1064,6 +1042,100 @@ function editTag(tag_id) {
   document.getElementById('tag-add-merge').style.display = '';
   $(tag_add_modal).modal();
 }
+
+var tag_directory_add_modal = document.getElementById('tag_directory-add-modal');
+
+$(tag_directory_add_modal).on('shown.bs.modal', function() {
+  document.getElementById('tag_directory-add-name').focus();
+});
+
+
+function createDirectory(){
+  document.getElementById('tag_directory-add-form').reset();
+  document.getElementById('tag_directory-add-id').value = '';
+  document.getElementById('tag_directory-add-label-new').style.display = '';
+  document.getElementById('tag_directory-add-label-change').style.display = 'none';
+  document.getElementById('tag_directory-add-cancel').style.display = '';
+  document.getElementById('tag_directory-add-delete').style.display = 'none';
+  $(tag_directory_add_modal).modal();
+
+}
+function editDirectory(directory_id) {
+  document.getElementById('tag_directory-add-form').reset();
+  document.getElementById('tag_directory-add-id').value = '' + directory_id;
+  document.getElementById('tag_directory-add-name').value = tags_directories['' + directory_id].name;
+  document.getElementById('tag_directory-add-description').value = tags_directories['' + directory_id].description;
+  document.getElementById('tag_directory-add-label-new').style.display = 'none';
+  document.getElementById('tag_directory-add-label-change').style.display = '';
+  document.getElementById('tag_directory-add-cancel').style.display = 'none';
+  document.getElementById('tag_directory-add-delete').style.display = '';
+  $(tag_directory_add_modal).modal();
+}
+// Save directory button
+document.getElementById('tag_directory-add-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var directory_id = document.getElementById('tag_directory-add-id').value;
+  if(directory_id) {
+    directory_id = parseInt(directory_id);
+  } else {
+    directory_id = null;
+  }
+  var name = document.getElementById('tag_directory-add-name').value;
+  var description = document.getElementById('tag_directory-add-description').value;
+  if(!name) {
+    alert("Directory name cannot be empty");
+    return;
+  }
+  var req;
+  if(directory_id !== null) {
+    console.log("Posting update for directory " + directory_id);
+    req = postJSON(
+      '/api/project/' + project_id + '/tag_directory/' + directory_id,
+      {name: name, description: description}
+    );
+  } else {
+    console.log("Posting new directory");
+    req = postJSON(
+      '/api/project/' + project_id + '/tag_directory/new',
+      {name: name, description: description}
+    );
+  }
+  showSpinner();
+  req.then(function(reply) {
+    console.log("Directory posted");
+    $('#tag_directory-add-modal').modal('hide');
+    document.getElementById('tag_directory-add-form').reset();
+  })
+  .catch(function(error) {
+    console.error("Failed to create directory:", error);
+    alert("Couldn't create directory!\n\n" + error);
+  })
+  .then(hideSpinner);
+});
+
+// Delete directory button
+document.getElementById('tag_directory-add-delete').addEventListener('click', function(e) {
+  var directory_id = document.getElementById('tag_directory-add-id').value;
+  if(directory_id) {
+    if(!window.confirm("Are you sure you want to delete this directory?")) {
+      e.preventDefault();
+      return;
+    }
+    directory_id = parseInt(directory_id);
+    console.log("Posting directory " + directory_id + " deletion");
+    deleteURL(
+      '/api/project/' + project_id + '/tag_directory/' + directory_id
+    )
+    .then(function() {
+      $('#tag_directory-add-modal').modal('hide');
+      document.getElementById('tag_directory-add-form').reset();
+    })
+    .catch(function(error) {
+      console.error("Failed to delete directory:", error);
+      alert("Couldn't delete directory!\n\n" + error);
+    });
+  }
+});
 
 // Save tag button
 document.getElementById('tag-add-form').addEventListener('submit', function(e) {
@@ -1084,7 +1156,7 @@ document.getElementById('tag-add-form').addEventListener('submit', function(e) {
   if(tag_id !== null) {
     console.log("Posting update for tag " + tag_id);
     req = postJSON(
-      '/api/project/' + project_id + '/tag/' + tag_id,
+      '/api/project/' + project_id + '/tag/' + tag_id, 
       {path: tag_path,
        description: document.getElementById('tag-add-description').value}
     );
