@@ -33,8 +33,4 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_tags_tags_directory_id'))
         batch_op.drop_column('tags_directory_id')
 
-    op.create_table('sqlite_sequence',
-    sa.Column('name', sa.NullType(), nullable=True),
-    sa.Column('seq', sa.NullType(), nullable=True)
-    )
     # ### end Alembic commands ###
