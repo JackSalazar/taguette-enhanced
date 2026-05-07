@@ -223,6 +223,9 @@ class Project(Base):
     tags = relationship('Tag', cascade='all,delete-orphan', order_by='Tag.id',
                         passive_deletes=True,
                         back_populates='project')
+    
+    tags_directorys = relationship("TagsDirectory", back_populates='project')
+
 
     def __repr__(self):
         return '<%s.%s %r %r>' % (
@@ -387,7 +390,8 @@ class Command(Base):
 
     TYPES = {'project_meta', 'document_add', 'document_delete',
              'highlight_add', 'highlight_delete', 'tag_add', 'tag_delete',
-             'tag_merge', 'member_add', 'member_remove', 'project_import'}
+             'tag_merge', 'member_add', 'member_remove', 'project_import', 
+             'tag_directory_add', 'tag_directory_delete'}
 
     for n in TYPES:
         PROM_COMMAND.labels(n).inc(0)
@@ -472,6 +476,40 @@ class Command(Base):
             document_id=document.id,
             payload={'type': 'highlight_delete',  # keep in sync above
                      'highlight_id': highlight_id},
+        )
+
+    @classmethod
+    @command_fields(
+        columns=['project_id'],
+        payload_fields=['tag_directory_id', 'tag_directory_name'],
+    )
+    def tag_directory_add(cls, user_login, tag_directory):
+        assert isinstance(tag_directory.id, int)
+        return cls(
+            user_login=user_login,
+            project_id=tag_directory.project_id,
+            payload={
+                'type': 'tag_directory_add',
+                'tag_directory_id': tag_directory.id,
+                'tag_directory_name': tag_directory.name
+            }
+        )
+
+    @classmethod
+    @command_fields(
+        columns=['project_id'],
+        payload_fields=['tag_directory_id'],
+    )
+    def tag_directory_delete(cls, user_login, project_id, tag_directory_id):
+        assert isinstance(project_id, int)
+        assert isinstance(tag_directory_id, int)
+        return cls(
+            user_login=user_login,
+            project_id=project_id,
+            payload={
+                'type': 'tag_directory_delete',
+                'tag_directory_id': tag_directory_id
+            }
         )
 
     @classmethod
@@ -642,6 +680,10 @@ class Tag(Base):
         back_populates='tags',
     )
 
+    tags_directory_id = Column(Integer, ForeignKey('tags_directorys.id', ondelete='CASCADE'), nullable=True, index=True)
+    tags_directorys = relationship('TagsDirectory', back_populates='tags')
+
+
     def __repr__(self):
         return '<%s.%s %r %r project_id=%r>' % (
             self.__class__.__module__,
@@ -686,3 +728,25 @@ Tag.documents_count = column_property(
     .correlate_except(Highlight.__table__, highlight_tags)
     .scalar_subquery()
 )
+
+class TagsDirectory(Base):
+    
+    __tablename__ = 'tags_directorys' #Name of the table itself
+    __table_args__ = ({'sqlite_autoincrement': True},) #Exists because it's there for all other classes
+
+    id = Column(Integer, primary_key=True) #column name = type. primary_key is saying that this is the main identifier that can be used in indexing
+    project_id = Column(Integer, ForeignKey('projects.id', ondelete='CASCADE'), index=True) #ForeignKey is labeling the parent table and what column should be used as the identifier.
+    name = Column(String(200), nullable=False) #Name of the directory itself
+    description = Column(Text, nullable = True, default = '')
+    tags = relationship('Tag', back_populates='tags_directorys' )
+    project = relationship('Project', back_populates='tags_directorys')
+    
+    def __repr__(self):
+        return '<%s.%s %r %r project_id=%r>' % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            self.id,
+            self.name,
+            self.project_id,
+        )
+

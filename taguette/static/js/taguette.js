@@ -1031,6 +1031,7 @@ function createTag() {
   $(tag_add_modal).modal();
 }
 
+
 function editTag(tag_id) {
   document.getElementById('tag-add-form').reset();
   document.getElementById('tag-add-id').value = '' + tag_id;
@@ -1042,6 +1043,551 @@ function editTag(tag_id) {
   document.getElementById('tag-add-delete').style.display = '';
   document.getElementById('tag-add-merge').style.display = '';
   $(tag_add_modal).modal();
+}
+
+var tag_directory_add_modal = document.getElementById('tag_directory-add-modal');
+
+$(tag_directory_add_modal).on('shown.bs.modal', function() {
+  document.getElementById('tag_directory-add-name').focus();
+});
+
+
+function createDirectory(){
+  document.getElementById('tag_directory-add-form').reset();
+  document.getElementById('tag_directory-add-id').value = '';
+  document.getElementById('tag_directory-add-label-new').style.display = '';
+  document.getElementById('tag_directory-add-label-change').style.display = 'none';
+  document.getElementById('tag_directory-add-cancel').style.display = '';
+  document.getElementById('tag_directory-add-delete').style.display = 'none';
+  $(tag_directory_add_modal).modal();
+
+}
+function editDirectory(directory_id) {
+  document.getElementById('tag_directory-add-form').reset();
+  document.getElementById('tag_directory-add-id').value = '' + directory_id;
+  document.getElementById('tag_directory-add-name').value = tags_directories['' + directory_id].name;
+  document.getElementById('tag_directory-add-description').value = tags_directories['' + directory_id].description;
+  document.getElementById('tag_directory-add-label-new').style.display = 'none';
+  document.getElementById('tag_directory-add-label-change').style.display = '';
+  document.getElementById('tag_directory-add-cancel').style.display = 'none';
+  document.getElementById('tag_directory-add-delete').style.display = '';
+  $(tag_directory_add_modal).modal();
+}
+// Save directory button
+document.getElementById('tag_directory-add-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var directory_id = document.getElementById('tag_directory-add-id').value;
+  if(directory_id) {
+    directory_id = parseInt(directory_id);
+  } else {
+    directory_id = null;
+  }
+  var name = document.getElementById('tag_directory-add-name').value;
+  var description = document.getElementById('tag_directory-add-description').value;
+  if(!name) {
+    alert("Directory name cannot be empty");
+    return;
+  }
+  var req;
+  if(directory_id !== null) {
+    console.log("Posting update for directory " + directory_id);
+    req = postJSON(
+      '/api/project/' + project_id + '/tag_directory/' + directory_id,
+      {name: name, description: description}
+    );
+  } else {
+    console.log("Posting new directory");
+    req = postJSON(
+      '/api/project/' + project_id + '/tag_directory/new',
+      {name: name, description: description}
+    );
+  }
+  showSpinner();
+  req.then(function(reply) {
+    console.log("Directory posted");
+    $('#tag_directory-add-modal').modal('hide');
+    document.getElementById('tag_directory-add-form').reset();
+  })
+  .catch(function(error) {
+    console.error("Failed to create directory:", error);
+    alert("Couldn't create directory!\n\n" + error);
+  })
+  .then(hideSpinner);
+});
+
+// Delete directory button
+document.getElementById('tag_directory-add-delete').addEventListener('click', function(e) {
+  var directory_id = document.getElementById('tag_directory-add-id').value;
+  if(directory_id) {
+    if(!window.confirm("Are you sure you want to delete this directory?")) {
+      e.preventDefault();
+      return;
+    }
+    directory_id = parseInt(directory_id);
+    console.log("Posting directory " + directory_id + " deletion");
+    deleteURL(
+      '/api/project/' + project_id + '/tag_directory/' + directory_id
+    )
+    .then(function() {
+      $('#tag_directory-add-modal').modal('hide');
+      document.getElementById('tag_directory-add-form').reset();
+    })
+    .catch(function(error) {
+      console.error("Failed to delete directory:", error);
+      alert("Couldn't delete directory!\n\n" + error);
+    });
+  }
+});
+
+// Save tag button
+document.getElementById('tag-add-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  var tag_id = document.getElementById('tag-add-id').value;
+  if(tag_id) {
+    tag_id = parseInt(tag_id);
+  } else {
+    tag_id = null;
+  }
+  var tag_path = document.getElementById('tag-add-path').value;
+  if(!tag_path) {
+    alert(gettext("Invalid tag name"));
+    return;
+  }
+  var req;
+  if(tag_id !== null) {
+    console.log("Posting update for tag " + tag_id);
+    req = postJSON(
+      '/api/project/' + project_id + '/tag/' + tag_id, 
+      {path: tag_path,
+       description: document.getElementById('tag-add-description').value}
+    );
+  } else {
+    console.log("Posting new tag");
+    req = postJSON(
+      '/api/project/' + project_id + '/tag/new',
+      {path: tag_path,
+       description: document.getElementById('tag-add-description').value}
+    );
+  }
+  showSpinner();
+  req.then(function(reply) {
+    console.log("Tag posted");
+
+    // Check this tag in the list, or remember to check it once it appears
+    var tag_checkbox = document.getElementById('highlight-add-tags-' + reply.id);
+    if(tag_checkbox) {
+      tag_checkbox.checked = true;
+    }
+    last_added_tag = reply.id;
+
+    $(tag_add_modal).modal('hide');
+    document.getElementById('tag-add-form').reset();
+  })
+  .catch(function(error) {
+    console.error("Failed to create tag:", error);
+    alert(gettext("Couldn't create tag!") + "\n\n" + error);
+  })
+  .then(hideSpinner);
+});
+
+// Delete tag button
+document.getElementById('tag-add-delete').addEventListener('click', function(e) {
+  var tag_id = document.getElementById('tag-add-id').value;
+  if(tag_id) {
+    if(!window.confirm(gettext("Are you sure you want to delete the tag '%(tag)s'?", {tag: tags[tag_id].path}))) {
+      e.preventDefault();
+      return;
+    }
+    tag_id = parseInt(tag_id);
+    console.log("Posting tag " + tag_id + " deletion");
+    deleteURL(
+      '/api/project/' + project_id + '/tag/' + tag_id
+    )
+    .then(function() {
+      $(tag_add_modal).modal('hide');
+      document.getElementById('tag-add-form').reset();
+    })
+    .catch(function(error) {
+      console.error("Failed to delete tag:", error);
+      alert(gettext("Couldn't delete tag!") + "\n\n" + error);
+    });
+  }
+});
+
+// Merge tags button in tag edit modal: shows merge modal
+document.getElementById('tag-add-merge').addEventListener('click', function(e) {
+  e.preventDefault();
+
+  var tag_id = document.getElementById('tag_directory-add-id').value;
+  if(!tag_id)
+    return;
+  tag_id = parseInt(tag_id);
+
+  document.getElementById('tag-merge-form').reset();
+
+  // Set source tag
+  document.getElementById('tag-merge-src-id').value = '' + tag_id;
+  document.getElementById('tag-merge-src-name').value = tags['' + tag_id].path;
+
+  // Empty target tag <select>
+  var target = document.getElementById('tag-merge-dest');
+  target.innerHTML = '';
+
+  // Fill target tag <select>
+  var entries = Object.entries(tags);
+  sortByKey(entries, function(e) { return e[1].path; });
+  for(var i = 0; i < entries.length; ++i) {
+    if(entries[i][0] == '' + tag_id) {
+      // Can't merge into itself
+      continue;
+    }
+    var option = document.createElement('option');
+    option.setAttribute('value', entries[i][0]);
+    option.innerText = entries[i][1].path;
+    target.appendChild(option);
+  }
+
+  $(document.getElementById('tag-merge-modal')).modal();
+});
+
+// Merge modal submit button
+document.getElementById('tag-merge-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  var tag_src = document.getElementById('tag-merge-src-id').value;
+  if(!tag_src)
+    return;
+  tag_src = parseInt(tag_src);
+
+  var tag_dest = document.getElementById('tag-merge-dest').value;
+  if(!tag_dest)
+    return;
+  tag_dest = parseInt(tag_dest);
+
+  console.log(
+    "Merging tag " + tag_src + " (" + tags['' + tag_src].path +
+    ") into tag " + tag_dest + " (" + tags['' + tag_dest].path + ")");
+  showSpinner();
+  postJSON(
+    '/api/project/' + project_id + '/tag/merge',
+    {src: tag_src, dest: tag_dest}
+  )
+  .then(function() {
+    console.log("Tag merge posted");
+    $(document.getElementById('tag-merge-modal')).modal('hide');
+  })
+  .catch(function(error) {
+    console.error("Failed to merge tags:", error);
+    alert(gettext("Couldn't merge tags!") + "\n\n" + error);
+  })
+  .then(hideSpinner);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * Tag Directorys
+ */
+
+
+/*
+var tags_directory_sorter = document.getElementById('tag_directory-sortby');
+var sortTags_directory = ['path', 'asc'];
+var tags_directory_list = document.getElementById('tags_directory-list');
+var tags_directory_modal_list = document.getElementById('highlight-add-tags_directory');
+
+function sortTagsBy(field, dir) {
+  sortTags_directory = [field, dir];
+  var options = document.getElementById('tag_directory-sortby-menu').querySelectorAll('a.dropdown-item');
+  var optionSorts = [
+    ['path', 'asc'],
+    ['path', 'desc'],
+    ['count', 'asc'],
+    ['count', 'desc'],
+  ];
+  for(var i = 0; i < optionSorts.length; ++i) {
+    if(optionSorts[i][0] === field && optionSorts[i][1] === dir) {
+      options[i].classList.add('active');
+    } else {
+      options[i].classList.remove('active');
+    }
+  }
+  updateTagsList();
+}
+
+function linkTag(elem, tag_path) {
+  var url = base_path + '/project/' + project_id + '/highlights/' + encodeURIComponent(tag_directory_path);
+  elem.setAttribute('href', url);
+  elem.addEventListener('click', function(e) {
+    e.preventDefault();
+    window.history.pushState({tag_path: tag_path}, "Tag " + tag_path, url);
+    loadTag(tag_path);
+  });
+}
+
+linkTag(document.getElementById('load-all-tags'), '');
+
+function addTag(tag) {
+  if(!('count' in tag) && tag.id in tags) {
+    tag.count = tags[tag.id].count;
+  } else if(!('count' in tag)) {
+    tag = Object.assign({'count': 0}, tag)
+  }
+  tags[tag.id] = tag;
+  updateTagsList();
+
+  // This is the last tag we created, check it
+  if(tag.id == last_added_tag){
+    document.getElementById('highlight-add-tags-' + tag.id).checked = true;
+  }
+}
+
+function removeTag(tag_id) {
+  // Remove from list of tags
+  delete tags['' + tag_id];
+  // Remove from all highlights
+  var hl_entries = Object.entries(highlights);
+  for(var i = 0; i < hl_entries.length; ++i) {
+    var hl = hl_entries[i][1];
+    hl.tags = hl.tags.filter(function(v) { return v != tag_id; });
+  }
+  updateTagsList();
+}
+
+function mergeTags(tag_src, tag_dest) {
+  for(var id in highlights) {
+    var hl_tags = highlights[id].tags;
+
+    if(hl_tags.includes(tag_src)) {
+      // Remove src tag
+      var idx = hl_tags.indexOf(tag_src);
+      hl_tags.splice(idx, 1);
+
+      if(!hl_tags.includes(tag_dest)) {
+        // Add new tag
+        hl_tags.push(tag_dest);
+      }
+    }
+  }
+  delete tags['' + tag_src];
+  updateTagsList();
+}
+
+function updateTagsList() {
+  var entries = Object.entries(tags);
+  var isReverse = sortTags[1] == 'desc';
+  sortByKey(entries, function(e) { return e[1][sortTags[0]]; }, isReverse);
+
+  // The list in the left panel
+
+  // Empty the list
+  while(tags_list.firstChild) {
+    var first = tags_list.firstChild;
+    if(first.classList
+     && first.classList.contains('special-item-button')) {
+      break;
+    }
+    tags_list.removeChild(first);
+  }
+  // Fill up the list again
+  // TODO: Show this as a tree
+  var tree = {};
+  var before = tags_list.firstChild;
+  for(var i = 0; i < entries.length; ++i) {
+    var tag = entries[i][1];
+    var elem = document.createElement('li');
+    elem.className = 'list-group-item';
+    if(current_tag !== null && tag.path.substr(0, current_tag.length) == current_tag) {
+      elem.classList.add('tag-current');
+    }
+    elem.innerHTML =
+      '<div class="d-flex justify-content-between align-items-center">' +
+      '  <div class="tag-name">' +
+      '    <a id="tag-link-' + tag.id + '">' + escapeHtml(tag.path) + '</a>' +
+      '  </div>' +
+      '  <div style="white-space: nowrap;">' +
+      '    <span class="badge badge-secondary badge-pill" id="tag-' + tag.id + '-count">' + tag.count + '</span>' +
+      '    <a href="javascript:editTag(' + tag.id + ');" class="btn btn-primary btn-sm">' + gettext("Edit") + '</a>' +
+      '  </div>' +
+      '</div>';
+    tags_list.insertBefore(elem, before);
+    linkTag(document.getElementById('tag-link-' + tag.id), tag.path);
+  }
+  if(entries.length == 0) {
+    var elem = document.createElement('div');
+    elem.className = 'list-group-item disabled';
+    elem.textContent = gettext("There are no tags in this project yet.");
+    tags_list.insertBefore(elem, before);
+  }
+
+  // The list in the highlight modal
+  updateModalTagsList();
+
+  // Re-set all highlights, to update titles
+  var hl_entries = Object.entries(highlights);
+  for(var i = 0; i < hl_entries.length; ++i) {
+    setHighlight(hl_entries[i][1]);
+  }
+
+  console.log("Highlights updated");
+}
+
+function updateModalTagsList() {
+  var entries = Object.entries(tags);
+  // Save previous checked statuses
+  var checked_tags = [];
+  for(var i = 0; i < entries.length; ++i) {
+    var id = entries[i][1].id;
+    var checkbox = document.getElementById('highlight-add-tags-' + id);
+    if(checkbox && checkbox.checked) {
+      checked_tags.push(id);
+    }
+  }
+
+  // Empty the list
+  while(tags_modal_list.firstChild) {
+    var first = tags_modal_list.firstChild;
+    if(first.classList
+     && first.classList.contains('special-item-button')) {
+      break;
+    }
+    tags_modal_list.removeChild(first);
+  }
+
+  // Apply search
+  var searchFor = document.getElementById('highlight-search').value;
+  if(searchFor.length > 0) {
+    entries.forEach(function(e) {
+      if(e[1].path.indexOf(searchFor) > -1) {
+        e[1].searchGroup = '0';
+      } else {
+        e[1].searchGroup = '1';
+      }
+    });
+  } else {
+    entries.forEach(function(e) {
+      delete e[1].searchGroup;
+    });
+  }
+
+  sortByKey(entries, function(e) { return e[1].searchGroup + e[1].path; });
+
+  // Fill up the list again
+  // TODO: Show this as a tree
+  var tree = {};
+  var before = tags_modal_list.firstChild;
+  for(var i = 0; i < entries.length; ++i) {
+    var tag = entries[i][1];
+    var elem = document.createElement('li');
+    var searchHitClass = '';
+    if(searchFor.length > 0) {
+      if(tag.searchGroup == '0') {
+        searchHitClass = 'font-weight-bold';
+      } else {
+        searchHitClass = 'text-muted';
+      }
+    }
+    elem.className = 'tag-name form-check ' + searchHitClass;
+    elem.innerHTML =
+      '<input type="checkbox" class="form-check-input" value="' + tag.id + '" name="highlight-add-tags" id="highlight-add-tags-' + tag.id + '" />' +
+      '<label for="highlight-add-tags-' + tag.id + '" class="form-check-label ">' + escapeHtml(tag.path) + '</label>';
+    tags_modal_list.insertBefore(elem, before);
+  }
+  if(entries.length == 0) {
+    var elem = document.createElement('li');
+    elem.textContent = gettext("no tags");
+    tags_modal_list.insertBefore(elem, before);
+  }
+
+  // Re-check checkboxes
+  for(var i = 0; i < checked_tags.length; ++i) {
+    document.getElementById('highlight-add-tags-' + checked_tags[i]).checked = true;
+  }
+
+  console.log("Tags list updated");
+}
+
+var highlightSearch = document.getElementById('highlight-search');
+highlightSearch.addEventListener('input', function(e) {
+  updateModalTagsList();
+});
+highlightSearch.addEventListener('keypress', function(e) {
+  if(e.key === 'Enter') {
+    // If search is empty, don't prevent form submission, otherwise...
+    if(highlightSearch.value.length > 0) {
+      // Prevent submission
+      e.preventDefault();
+
+      // Toggle the first match
+      var checkbox = document.getElementById('highlight-add-tags').querySelector('.form-check.font-weight-bold input');
+      if(checkbox) {
+        checkbox.checked = !checkbox.checked;
+
+        // Reset the search
+        highlightSearch.value = '';
+        updateModalTagsList();
+      }
+    }
+  }
+});
+
+function highlightModalReset() { //Not sure if this needs to be modified, or even included
+  document.getElementById('highlight-add-form').reset();
+  updateModalTagsList();
+}
+
+updateTags_DirectoryList();
+
+function updateTag_DirectoryCount(id, delta) {
+  var tag_directory = tags_directory['' + id];
+  tag_directory.count += delta;
+  var elem = document.getElementById('tag_directory-' + id + '-count');
+  elem.textContent = tag_directory.count;
+}
+
+
+
+
+
+var tag_directory_add_modal = document.getElementById('tag_directory-add-modal');
+
+$(tag_directory_add_modal).on('shown.bs.modal', function() {
+  document.getElementById('tag_directory-add-path').focus();
+});
+
+function createDirectory(){ //Tested. Seemingly functional
+  document.getElementById('tag_directory-add-form').reset();
+  document.getElementById('tag_directory-add-id').value = '';
+  document.getElementById('tag_directory-add-label-new').style.display = '';
+  document.getElementById('tag_directory-add-label-change').style.display = 'none';
+  document.getElementById('tag_directory-add-cancel').style.display = '';
+  document.getElementById('tag_directory-add-delete').style.display = 'none';
+  document.getElementById('tag_directory-add-merge').style.display = 'none';
+  $(tag_directory_add_modal).modal();
+
+}
+
+function editDirectory(tag_directory_id) {
+  document.getElementById('tag_directory-add-form').reset();
+  document.getElementById('tag_directory-add-id').value = '' + tag_directory_id;
+  document.getElementById('tag_directory-add-path').value = tags['' + tag_directory_id].path;
+  document.getElementById('tag_directory-add-description').value = tags['' + tag_directory_id].description;
+  document.getElementById('tag_directory-add-label-new').style.display = 'none';
+  document.getElementById('tag_directory-add-label-change').style.display = '';
+  document.getElementById('tag_directory-add-cancel').style.display = 'none';
+  document.getElementById('tag_directory-add-delete').style.display = '';
+  document.getElementById('tag_directory-add-merge').style.display = '';
+  $(tag_directory_add_modal).modal();
 }
 
 // Save tag button
@@ -1188,6 +1734,15 @@ document.getElementById('tag-merge-form').addEventListener('submit', function(e)
   })
   .then(hideSpinner);
 });
+*/
+
+
+
+
+
+
+
+
 
 
 /*

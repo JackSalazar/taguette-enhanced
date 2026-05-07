@@ -178,6 +178,8 @@ def make_app(config, debug=False, xsrf_cookies=True):
         UnbakedURLSpec('/api/project/([0-9]+)/tag/new', api.TagAdd),
         UnbakedURLSpec('/api/project/([0-9]+)/tag/([0-9]+)', api.TagUpdate),
         UnbakedURLSpec('/api/project/([0-9]+)/tag/merge', api.TagMerge),
+        UnbakedURLSpec('/api/project/([0-9]+)/tag_directory/new', api.TagDirectoryAdd),
+        UnbakedURLSpec('/api/project/([0-9]+)/tag_directory/([0-9]+)', api.TagDirectoryUpdate),
         UnbakedURLSpec('/api/project/([0-9]+)/members', api.MembersUpdate),
         UnbakedURLSpec('/api/project/([0-9]+)/events', api.ProjectEvents),
 

@@ -303,6 +303,41 @@ class DocumentContents(BaseHandler):
             ],
         })
 
+class TagDirectoryAdd(BaseHandler): 
+    @api_auth
+    @PROM_REQUESTS.sync('tag_directory_add')
+    def post(self, project_id):
+        project, privileges = self.get_project(project_id)
+        if not privileges.can_add_tag():
+             return self.send_error_json(403, self.gettext("Unauthorized"))
+        try: 
+            obj = self.get_json()
+            name = obj['name']
+            description = obj['description'] 
+            validate.description(obj['description'])
+            tag_directory = database.TagsDirectory(
+                project=project,
+                name=name,
+                description=description
+            )
+            try:
+                self.db.add(tag_directory)
+                self.db.flush()
+            except IntegrityError:
+                self.db.rollback()
+                return self.send_error_json(409, "Conflict")
+            cmd = database.Command.tag_directory_add(
+                self.current_user,
+                tag_directory,
+            )
+            self.db.add(cmd)
+            self.db.commit()
+            self.db.refresh(cmd)
+            self.application.notify_project(project.id, cmd)
+            return self.send_json({'id': tag_directory.id})
+        except validate.InvalidFormat as e:
+            logger.info("Error validating TagDirectoryAdd: %r", e)
+            return self.send_error_json(400, self.gettext(e.message))
 
 class TagAdd(BaseHandler):
     @api_auth
@@ -332,11 +367,67 @@ class TagAdd(BaseHandler):
             self.db.commit()
             self.db.refresh(cmd)
             self.application.notify_project(project.id, cmd)
-
             return self.send_json({'id': tag.id})
         except validate.InvalidFormat as e:
             logger.info("Error validating TagAdd: %r", e)
             return self.send_error_json(400, self.gettext(e.message))
+
+class TagDirectoryUpdate(BaseHandler):
+    @api_auth
+    @PROM_REQUESTS.sync('tag_directory_update')
+    def post(self, project_id, tag_directory_id):
+        project, privileges = self.get_project(project_id)
+        if not privileges.can_update_tag():
+            return self.send_error_json(403, self.gettext("Unauthorized"))
+        try:
+            obj = self.get_json()
+            td = self.db.query(database.TagsDirectory).get(int(tag_directory_id))
+            if td is None or td.project_id != project.id:
+                return self.send_error_json(404, self.gettext("No such directory"))
+            if obj:
+                if 'name' in obj:
+                    td.name = obj['name']
+                if 'description' in obj:
+                    validate.description(obj['description'])
+                    td.description = obj['description']
+                cmd = database.Command.tag_directory_add(
+                    self.current_user,
+                    td,
+                )
+                try:
+                    self.db.add(cmd)
+                    self.db.commit()
+                except IntegrityError:
+                    self.db.rollback()
+                    return self.send_error_json(409, "Conflict")
+                self.db.refresh(cmd)
+                self.application.notify_project(project.id, cmd)
+            return self.send_json({'id': td.id})
+        except validate.InvalidFormat as e:
+            logger.info("Error validating TagDirectoryUpdate: %r", e)
+            return self.send_error_json(400, self.gettext(e.message))
+
+    @api_auth
+    @PROM_REQUESTS.sync('tag_directory_delete')
+    def delete(self, project_id, tag_directory_id):
+        project, privileges = self.get_project(project_id)
+        if not privileges.can_delete_tag():
+            return self.send_error_json(403, self.gettext("Unauthorized"))
+        td = self.db.query(database.TagsDirectory).get(int(tag_directory_id))
+        if td is None or td.project_id != project.id:
+            return self.send_error_json(404, self.gettext("No such directory"))
+        self.db.delete(td)
+        cmd = database.Command.tag_directory_delete(
+            self.current_user,
+            project.id,
+            td.id,
+        )
+        self.db.add(cmd)
+        self.db.commit()
+        self.db.refresh(cmd)
+        self.application.notify_project(project.id, cmd)
+        self.set_status(204)
+        return self.finish()
 
 
 class TagUpdate(BaseHandler):

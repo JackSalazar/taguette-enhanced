@@ -436,6 +436,7 @@ class ProjectAdd(BaseHandler):
     def get(self):
         return self.render('project_new.html')
 
+
     @authenticated
     @PROM_REQUESTS.sync('new_project')
     def post(self):
@@ -756,6 +757,13 @@ class Project(BaseHandler):
                           'count': tag.highlights_count}
             for tag in project.tags
         })
+        tags_directories_json = html_safe_json_dumps({ 
+            str(td.id) : {'id': td.id, 
+                          'name': td.name, 
+                          'description':td.description}
+            for td in project.tags_directorys
+        })
+        
         members = (
             self.db.query(database.ProjectMember)
             .filter(database.ProjectMember.project_id == project_id)
@@ -777,6 +785,7 @@ class Project(BaseHandler):
             user_login=html_safe_json_dumps(self.current_user),
             tags=tags_json,
             members=members_json,
+            tags_directories=tags_directories_json,  
             can_import_codebook=can_import_codebook,
             can_delete_project=can_delete_project,
         )
